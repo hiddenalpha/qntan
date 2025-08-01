@@ -7,6 +7,10 @@
   http://git.hiddenalpha.ch/qntan.git/tree/README.txt
 
 #endif
+
+/* TODO I guess needed?   #include <stddef.h>   */
+/* TODO I guess needed?   #include <stdint.h>   */
+
 #if __cplusplus
 extern "C" {
 #endif
@@ -34,10 +38,6 @@ extern "C" {
 
 
 #if 0 /* TODO any need for fwd decls? */
-struct Qntan_EvLoop;
-struct Qntan_Mallocator;
-struct Qntan_MemArena;
-struct Qntan_Executor;
 struct Qntan_EvLoop;
 struct Qntan_Mallocator;
 struct Qntan_MemArena;
@@ -247,7 +247,7 @@ struct Qntan_IoMux {
 	 * @param arg
 	 *      User defined pointer to pass a context to 'onDone'. */
 	void (*write)(
-		struct Qntan_IoMux**, void const*buf, int sz, int cnt,
+		struct Qntan_IoMux**, void*buf, int sz, int cnt,
 		uintptr_t ptrToFILE, void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
 	/*
 	 * Basic idea is from
@@ -324,7 +324,7 @@ struct Qntan_File {
 	 *      Negative numbers indicate errors. Positive values indicate
 	 *      number of objects that where read. */
 	void (*write)(
-		struct Qntan_File**, void const*buf, int sz, int cnt,
+		struct Qntan_File**, void*buf, int sz, int cnt,
 		void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
 	/*
 	 * Basic idea is from
@@ -372,7 +372,7 @@ struct Qntan_Process {
 	 *      0x4 set means this is last chunk.
 	 *      Any other bit set is UNDEFINED BEHAVIOR!  */
 	void (*write)(
-		struct Qntan_Process**, void*buf, int buf_len, int flgs,
+		struct Qntan_Process**, void const*buf, int buf_len, int flgs,
 		void(*onWritten)(int ret,Qntan_Cls), Qntan_Cls );
 	/*
 	 * https://pubs.opengroup.org/onlinepubs/9699919799/functions/kill.html
@@ -432,7 +432,7 @@ struct Qntan_HshTbl {
 	 * Initializes a new cursor. */
 	struct Qntan_HshTbl_Cursor** (*newCursor)( struct Qntan_HshTbl** );
 	/**/
-	void (*delCursor)( struct Qntan_HshTbl_Cursor** );
+	void (*delCursor)( struct Qntan_HshTbl**, struct Qntan_HshTbl_Cursor** );
 	/**/
 };
 
@@ -482,15 +482,15 @@ struct Qntan_Socket {
 	 * @param onDone
 	 *      The function that gets called when the send operation has completed.
 	 *      Negative 'ret' indicates errors. 'rbuf' MUST be the same as 'buf'.  */
-	void (*send)( struct Qntan_Socket**, void const*buf, int buf_len, int flgs,
-		void(*onDone)(int ret,void const*rbuf,Qntan_Cls), Qntan_Cls );
+	void (*send)( struct Qntan_Socket**, void*buf, int buf_len, int flgs,
+		void(*onDone)(int ret,void*rbuf,Qntan_Cls), Qntan_Cls );
 	/*
 	 * Based on "https://pubs.opengroup.org/onlinepubs/9699919799/functions/recv.html".
 	 *
 	 * @param onDone.buf
 	 *      MUST be the same ptr as passed via 'buf' initially.  */
-	void (*recv)( struct Qntan_Socket**, void const*buf, int buf_len,
-		void(*onDone)(int ret,void const*buf,Qntan_Cls), Qntan_Cls );
+	void (*recv)( struct Qntan_Socket**, void*buf, int buf_len,
+		void(*onDone)(int ret,void*buf,Qntan_Cls), Qntan_Cls );
 	/*
 	 * Based on "https://pubs.opengroup.org/onlinepubs/9699919799/functions/close.html".
 	 * WARN: Read doc for 'send' carefully before calling 'close'!
@@ -544,7 +544,7 @@ struct Qntan_TarEnc {
 	 * @param ret
 	 *      Negative on errors.
 	 *      Count of octets successfully written.  */
-	void (*write)( struct Qntan_TarEnc**, void const*buf, int buf_len, int flgs,
+	void (*write)( struct Qntan_TarEnc**, void*buf, int buf_len, int flgs,
 		void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
 	/*
 	 * Returns the most recent error as a short string message. The
@@ -639,11 +639,11 @@ struct Qntan_Networker {
 	 * @param onDone
 	 *     called at end of operation.  */
 	void (*getaddrinfo)(
-		struct Qntan_Networker**, const char*node, int node_len,
-		const char*service, int service_len,
+		struct Qntan_Networker**, char const*node, int node_len,
+		char const*service, int service_len,
 		int(*onAddress)(int ai_flags, int ai_family, int ai_socktype, int ai_protocol,
-			void*sockaddr, int sockaddr_len, const char*ai_canonname, Qntan_Cls),
-		void(*onDone)(int ret, const char*errmsg, Qntan_Cls),
+			void*sockaddr, int sockaddr_len, char const*ai_canonname, Qntan_Cls),
+		void(*onDone)(int ret, char const*errmsg, Qntan_Cls),
 		Qntan_Cls );
 };
 
@@ -686,10 +686,10 @@ struct Qntan_CsvParser_Mentor {
 	void (*onAttrEnd)( Qntan_Cls );
 	/*
 	 * TODO doc */
-	void (*onChunkNaked)( const char*buf, int buf_len, Qntan_Cls );
+	void (*onChunkNaked)( char const*buf, int buf_len, Qntan_Cls );
 	/*
 	 * TODO doc */
-	void (*onChunkQuoted)( const char*buf, int buf_len, Garbage_Cls );
+	void (*onChunkQuoted)( char const*buf, int buf_len, Qntan_Cls );
 };
 
 
@@ -884,7 +884,7 @@ struct Qntan_JsonTreeParser {
     /*
      * flg bit 0x4 means "isLastChunk". */
     void (*write)( struct Qntan_JsonTreeParser**, void const*buf, int buf_len, int flg,
-        void(*onDone)(int ret,Qntan_Closure), Qntan_Closure );
+        void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
     /**/
 };
 
@@ -908,7 +908,7 @@ struct Qntan_XmlParser {
 	 *      Any other bit set is UNDEFINED BEHAVIOR!
 	 */
 	void (*write)( struct Qntan_XmlParser**,
-		const char*buf, int buf_len, int flgs,
+		void const*buf, int buf_len, int flgs,
 		void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
 };
 
