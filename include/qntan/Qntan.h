@@ -27,6 +27,7 @@ extern "C" {
 /*
  * "Cls" aka "Closure". The userdata type to pass around for callbacks etc.  */
 #define Qntan_Cls uintptr_t
+#define QNTAN_CLS(OBJ) ((Qntan_Cls)OBJ)
 
 
 
@@ -247,7 +248,7 @@ struct Qntan_IoMux {
 	 * @param arg
 	 *      User defined pointer to pass a context to 'onDone'. */
 	void (*write)(
-		struct Qntan_IoMux**, void*buf, int sz, int cnt,
+		struct Qntan_IoMux**, void const*buf, int sz, int cnt,
 		uintptr_t ptrToFILE, void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
 	/*
 	 * Basic idea is from
