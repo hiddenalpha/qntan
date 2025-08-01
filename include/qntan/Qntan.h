@@ -9,7 +9,7 @@
 #endif
 
 /* TODO I guess needed?   #include <stddef.h>   */
-/* TODO I guess needed?   #include <stdint.h>   */
+#include <stdint.h>
 
 #if __cplusplus
 extern "C" {
@@ -49,28 +49,28 @@ struct Qntan_Process;
 struct Qntan_HshTbl;
 struct Qntan_HshTbl_Cursor;
 struct Qntan_Socket;
-struct Qntan_TarEnc_Hdr;
 struct Qntan_TarEnc;
-struct Qntan_TarDec_Hdr;
+struct Qntan_TarEnc_Hdr;
 struct Qntan_TarDec;
+struct Qntan_TarDec_Hdr;
 struct Qntan_Networker;
-struct Qntan_CsvParser;
-struct Qntan_CsvParser_Mentor;
+struct Qntan_CsvDec;
+struct Qntan_CsvDec_Mentor;
 struct Qntan_CsvIStream;
 struct Qntan_CsvIStream_Mentor;
 struct Qntan_JsonEnc;
-struct Qntan_JsonParser;
-struct Qntan_JsonParser_Mentor;
-struct Qntan_JsonTreeParser_JsonNode;
-struct Qntan_JsonTreeParser;
-struct Qntan_XmlParser;
-struct Qntan_XmlParser_Mentor;
+struct Qntan_JsonDec;
+struct Qntan_JsonDec_Mentor;
+struct Qntan_JsonTreeDec_JsonNode;
+struct Qntan_JsonTreeDec;
+struct Qntan_XmlDec;
+struct Qntan_XmlDec_Mentor;
 struct Qntan_JavaBytecodeParser;
 struct Qntan_JavaBytecodeParser_Mentor;
 struct Qntan_CamtAccount;
 struct Qntan_CamtTransaction;
-struct Qntan_CamtParser_Mentor;
-struct Qntan_CamtParser;
+struct Qntan_CamtDec_Mentor;
+struct Qntan_CamtDec;
 #endif
 
 
@@ -657,19 +657,19 @@ struct Qntan_Networker {
 
 
 
-struct Qntan_CsvParser {
+struct Qntan_CsvDec {
 	/*
 	 * @param flgs
 	 *      0x4 set means this is last chunk.
 	 *      Any other bit set is UNDEFINED BEHAVIOR!
 	 */
-	void (*write)( struct Qntan_CsvParser**,
+	void (*write)( struct Qntan_CsvDec**,
 		void const*buf, int buf_len, int flgs,
 		void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
 };
 
 
-struct Qntan_CsvParser_Mentor {
+struct Qntan_CsvDec_Mentor {
 	/*
 	 * TODO doc */
 	void (*onCsvDocEnd)( Qntan_Cls );
@@ -796,24 +796,24 @@ struct Qntan_JsonEnc {
 
 
 
-struct Qntan_JsonParser {
+struct Qntan_JsonDec {
 	/*
 	 * @param flgs
 	 *      0x4 set means this is last chunk.
 	 *      Any other bit set is UNDEFINED BEHAVIOR!
 	 */
-	void (*write)(struct Qntan_JsonParser**, void const*buf, int buf_len, int flgs,
+	void (*write)(struct Qntan_JsonDec**, void const*buf, int buf_len, int flgs,
 		void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
 };
 
 
-struct Qntan_JsonParser_Mentor {
+struct Qntan_JsonDec_Mentor {
     /*
      * Called if a parsing error occurs. 'errOff' is a byte offset measured from
      * the beginning of the json to the char where the error was detected. Be
      * prepared that the error may not be exactly at the pointed location, but
      * somewhere near that location. */
-    void (*onError)( Qntan_Cls cls, off_t errOff );
+    void (*onError)( Qntan_Cls cls, uintmax_t errOff );
     /**/
     void (*onJsonDocEnd)( Qntan_Cls cls );
     /**/
@@ -847,7 +847,7 @@ struct Qntan_JsonParser_Mentor {
 
 
 
-struct Qntan_JsonTreeParser_JsonNode {
+struct Qntan_JsonTreeDec_JsonNode {
     /*
      * '{'  object
      * '['  array
@@ -858,7 +858,7 @@ struct Qntan_JsonTreeParser_JsonNode {
     char type;
     /*
      * Is NULL for the root node. */
-    struct Qntan_JsonTreeParser_JsonNode *parent;
+    struct Qntan_JsonTreeDec_JsonNode *parent;
     /*
      * If this node is a child in an object, its key will be stored here. So
      * for example in JSON '{"foo":42}' if we take current node to be
@@ -875,16 +875,16 @@ struct Qntan_JsonTreeParser_JsonNode {
             int valStr_len;
         };
         struct/*object or array. For object keys see 'childs[i]->key' */{
-            struct Qntan_JsonTreeParser_JsonNode **childs;
+            struct Qntan_JsonTreeDec_JsonNode **childs;
             int childs_len;
         };
     };
 };
 
-struct Qntan_JsonTreeParser {
+struct Qntan_JsonTreeDec {
     /*
      * flg bit 0x4 means "isLastChunk". */
-    void (*write)( struct Qntan_JsonTreeParser**, void const*buf, int buf_len, int flg,
+    void (*write)( struct Qntan_JsonTreeDec**, void const*buf, int buf_len, int flg,
         void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
     /**/
 };
@@ -898,23 +898,23 @@ struct Qntan_JsonTreeParser {
 
 
 
-struct Qntan_XmlParser {
+struct Qntan_XmlDec {
 	/**/
-	void (*pause)( struct Qntan_XmlParser** );
+	void (*pause)( struct Qntan_XmlDec** );
 	/**/
-	void (*resume)( struct Qntan_XmlParser** );
+	void (*resume)( struct Qntan_XmlDec** );
 	/*
 	 * @param flgs
 	 *      0x4 set means this is last chunk.
 	 *      Any other bit set is UNDEFINED BEHAVIOR!
 	 */
-	void (*write)( struct Qntan_XmlParser**,
+	void (*write)( struct Qntan_XmlDec**,
 		void const*buf, int buf_len, int flgs,
 		void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
 };
 
 
-struct Qntan_XmlParser_Mentor {
+struct Qntan_XmlDec_Mentor {
 	/**/
 	void (*onXmlDocEnd)( Qntan_Cls );
 	/**/
@@ -1087,23 +1087,23 @@ struct Qntan_CamtTransaction {
 	int qrRef_cap    , qrRef_len    ; char *qrRef    ;
 };
 
-struct Qntan_CamtParser_Mentor {
+struct Qntan_CamtDec_Mentor {
 	/**/
-	void (*onAccount)( struct Qntan_CamtParser_Mentor**,
+	void (*onAccount)( struct Qntan_CamtDec_Mentor**,
 		struct Qntan_CamtAccount*, void(*onDone)(Qntan_Cls), Qntan_Cls );
 	/**/
-	void (*onRecord)( struct Qntan_CamtParser_Mentor**,
+	void (*onRecord)( struct Qntan_CamtDec_Mentor**,
 		struct Qntan_CamtTransaction*, void(*onDone)(Qntan_Cls), Qntan_Cls );
 };
 
-struct Qntan_CamtParser {
+struct Qntan_CamtDec {
 	/*
 	 * @param flgs
 	 *      0x4 set means this is last chunk.
 	 *      Any other bit set is UNDEFINED BEHAVIOR!
 	 */
 	void (*write)(
-		struct Qntan_CamtParser**, void*buf, int buf_len, int flgs,
+		struct Qntan_CamtDec**, void*buf, int buf_len, int flgs,
 		void(*onDone)(int,Qntan_Cls), Qntan_Cls );
 };
 
