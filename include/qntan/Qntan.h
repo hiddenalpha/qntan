@@ -8,8 +8,8 @@
 
 #endif
 
-/* TODO I guess needed?   #include <stddef.h>   */
-#include <stdint.h>
+#include <stddef.h>  /* eg: size_t */
+#include <stdint.h>  /* eg: uintptr_t */
 
 #if __cplusplus
 extern "C" {
@@ -409,17 +409,20 @@ struct Qntan_HshTbl {
 	int  (*swap)( struct Qntan_HshTbl**, void*elm, void*ptrToDst );
 	/*
 	 * Returns 0 if 'elm' got copied into the hashtable.
-	 * Returns 1 'elm' already exists. Further, the existing element now got
-	 * copied to 'elm' for you, as an output.
+	 * Returns '-EEXIST' (yep, negated) if 'elm' already exists. Nothing got
+	 * copied anywhere.
 	 * Returns negative values to indicate errors. */
-	int  (*addOrGet)( struct Qntan_HshTbl**, void*elm );
+	int  (*addIfNew)( struct Qntan_HshTbl**, void*elm );
 	/*
 	 * Returns 0 if nothing was removed (eg there's no matching object).
-	 * Returns 1 if found object got moved to 'ptrToDst'. */
+	 * Returns 1 if found object got moved to 'ptrToDst'.
+	 * Returns negative values on error. */
 	int  (*del)( struct Qntan_HshTbl**, void*srch, void*ptrToDst );
 	/*
 	 * Returns 0 if nothing was removed (eg there are no elements).
-	 * Returns 1 if any object got moved to 'ptrToDst'. */
+	 * Returns 1 if any object got moved to 'ptrToDst'. It is UNSPECIFIED which
+	 * elements gets removed.
+	 * Returns negative values on error. */
 	int  (*delAny)( struct Qntan_HshTbl**, void*ptrToDst );
 	/*
 	 * Returns 0 if there's no object matching 'srch'.
@@ -427,10 +430,11 @@ struct Qntan_HshTbl {
 	 * will swill be present in the table. */
 	int  (*get)( struct Qntan_HshTbl**, void*srch, void*ptrToDst );
 	/*
-	 * Number of objects currently in this collection. */
+	 * Number of objects currently present in this collection. */
 	uintptr_t (*nObj)( struct Qntan_HshTbl** );
 	/*
-	 * Initializes a new cursor. */
+	 * Initializes and returns a new cursor. The cursor MUST be passed to
+	 * 'delCursor' when no longer used. */
 	struct Qntan_HshTbl_Cursor** (*newCursor)( struct Qntan_HshTbl** );
 	/**/
 	void (*delCursor)( struct Qntan_HshTbl**, struct Qntan_HshTbl_Cursor** );
@@ -440,7 +444,8 @@ struct Qntan_HshTbl {
 struct Qntan_HshTbl_Cursor {
 	/*
 	 * Returns 1 if next element got placed in 'ptrToDst'.
-	 * Returns 0 if there are no more elements to traverse. */
+	 * Returns 0 if there are no more elements to traverse.
+	 * Returns negative values on error. */
 	int  (*next)( struct Qntan_HshTbl_Cursor**, void*ptrToDst );
 	/*
 	 * moves the element where cursor currently points to to 'ptrToDst' and
@@ -495,6 +500,7 @@ struct Qntan_Socket {
 	/*
 	 * Based on "https://pubs.opengroup.org/onlinepubs/9699919799/functions/close.html".
 	 * WARN: Read doc for 'send' carefully before calling 'close'!
+	 * BROKEN: Api MUST be re-designed! Pooling doesn't work with TLS this way!
 	 */
 	void (*close)( struct Qntan_Socket**, void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
 };
