@@ -100,11 +100,13 @@ struct Qntan_EvLoop {
 	/*
 	 * Process reactor tasks until event loop is signalized to end. */
 	void (*runUntilDone)( struct Qntan_EvLoop** );
-// TODO  /*
-// TODO   * TODO that should be something like a 'Scheduler' or similar. */
-// TODO  void (*setTimeoutMs)(
-// TODO      struct Qntan_EvLoop**, struct Garbage_ThreadPool**, int delayMs,
-// TODO      void(*fn)(int eno, Qntan_Cls), Qntan_Cls );
+#if 0
+TODO  /*
+TODO   * TODO that should be something like a 'Scheduler' or similar. */
+TODO  void (*setTimeoutMs)(
+TODO      struct Qntan_EvLoop**, struct Garbage_ThreadPool**, int delayMs,
+TODO      void(*fn)(int eno, Qntan_Cls), Qntan_Cls );
+#endif
 	/*
 	 * returns NON-zero, if called from the EvLoopThread. This is intended for
 	 * assertions, to check that one is running on the expected thread. */
@@ -250,6 +252,9 @@ struct Qntan_IoMux {
 	void (*write)(
 		struct Qntan_IoMux**, void const*buf, int sz, int cnt,
 		uintptr_t ptrToFILE, void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
+	/**/
+	void (*flush)( struct Qntan_IoMux**, uintptr_t ptrToFILE,
+		void(*onDone)(int,Qntan_Cls), Qntan_Cls );
 	/*
 	 * Basic idea is from
 	 * "https://pubs.opengroup.org/onlinepubs/000095399/functions/send.html".
@@ -257,6 +262,8 @@ struct Qntan_IoMux {
 	 * Calls to send MUST NOT overlap. So as long a send call is in progress,
 	 * send MUST NOT be called meanwhile.
 	 *
+	 * @param fd
+	 *      FileDescriptor (NOT FILE*!). Or 'HANDLE' on ugly platforms.
 	 * @param onDone
 	 *      Called as soon operation has completed.
 	 * @param ret
@@ -265,7 +272,7 @@ struct Qntan_IoMux {
 	 * @param arg
 	 *      User defined pointer to pass a context to 'onDone'. */
 	void (*send)(
-		struct Qntan_IoMux**, int fd, void const*buf, int len, int flags,
+		struct Qntan_IoMux**, uintptr_t fd, void const*buf, int len, int flags,
 		void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
 	/*
 	 * Basic idea is from
@@ -274,6 +281,8 @@ struct Qntan_IoMux {
 	 * Calls to recv MUST NOT overlap. So as long a recv call is in progress,
 	 * recv MUST NOT be called meanwhile.
 	 *
+	 * @param fd
+	 *      FileDescriptor (NOT FILE*!). Or 'HANDLE' on ugly platforms.
 	 * @param onDone
 	 *      Called as soon operation has completed.
 	 * @param ret
@@ -282,13 +291,15 @@ struct Qntan_IoMux {
 	 * @param arg
 	 *      User defined pointer to pass a context to 'onDone'. */
 	void (*recv)(
-		struct Qntan_IoMux**, int fd, void*buf, int len, int flags,
+		struct Qntan_IoMux**, uintptr_t fd, void*buf, int len, int flags,
 		void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
 	/*
 	 * Basic idea is from
 	 * "https://pubs.opengroup.org/onlinepubs/009695399/functions/accept.html".
 	 * Just with a slightly different API.
 	 *
+	 * @param sockFd
+	 *      FileDescriptor (NOT FILE*!). Or 'HANDLE' on ugly platforms.
 	 * @param flgs
 	 *      Set 0x1 if you want 'sockaddr' to be filled.
 	 *      Setting any other bit is UNDEFINED BEHAVIOR!
@@ -310,14 +321,14 @@ struct Qntan_IoMux {
 
 struct Qntan_File {
 	/**/
-	void (*close)(
+	void (*flush)(
 		struct Qntan_File**, void(*onDone)(int ret, Qntan_Cls), Qntan_Cls );
 	/*
 	 * Basic idea is from
-	 * "https://pubs.opengroup.org/onlinepubs/000095399/functions/send.html".
+	 * "https://pubs.opengroup.org/onlinepubs/000095399/functions/write.html".
 	 * BUT be aware that there are some differences mentioned here!
-	 * Calls to send MUST NOT overlap. So as long a send call is in progress,
-	 * send MUST NOT be called meanwhile.
+	 * Calls to write MUST NOT overlap. So as long a write call is in progress,
+	 * write MUST NOT be called meanwhile.
 	 *
 	 * @param onDone
 	 *      Called as soon operation has completed.
@@ -325,7 +336,7 @@ struct Qntan_File {
 	 *      Negative numbers indicate errors. Positive values indicate
 	 *      number of objects that where read. */
 	void (*write)(
-		struct Qntan_File**, void*buf, int sz, int cnt,
+		struct Qntan_File**, void const*buf, int sz, int cnt,
 		void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
 	/*
 	 * Basic idea is from
@@ -343,14 +354,21 @@ struct Qntan_File {
 		struct Qntan_File**, void*buf, int sz, int cnt,
 		void(*onDone)(int ret,Qntan_Cls), Qntan_Cls );
 	/*
-	 * "https://pubs.opengroup.org/onlinepubs/007904875/functions/fseek.html" */
+	 * "https://pubs.opengroup.org/onlinepubs/007904875/functions/fseek.html"
+	 * TODO: Maybe this func should be without cback? */
 	void (*seek)(
-		struct Qntan_File**, int_fast64_t off,  int whence,
+		struct Qntan_File**, int64_t off,  int whence,
 		void(*onDone)(int ret, Qntan_Cls), Qntan_Cls );
 	/*
-	 * "https://pubs.opengroup.org/onlinepubs/007904875/functions/ftell.html" */
+	 * "https://pubs.opengroup.org/onlinepubs/007904875/functions/ftell.html"
+	 * TODO: Maybe this func should be without cback? */
 	void (*tell)( struct Qntan_File**,
-		void(*onDone)(int_fast64_t ret, Qntan_Cls), Qntan_Cls );
+		void(*onDone)(int64_t ret, Qntan_Cls), Qntan_Cls );
+	/*
+	 * TODO doc
+	 * WARN: size MUST be zero. Any other value is UB! */
+	void (*truncate)( struct Qntan_File**, int64_t size,
+		void(*onDone)(int,Qntan_Cls), Qntan_Cls );
 };
 
 
@@ -385,10 +403,9 @@ struct Qntan_Process {
 	 *     #define SIGKILL 132
 	 */
 	int (*signal)( struct Qntan_Process**, int sig );
-	/*
-	 * TODO doc
-	 * TODO adapt API to make timeout detectable. */
-	void (*join)( struct Qntan_Process**, int timeoutMs );
+	/**/
+	void (*join)( struct Qntan_Process**, int timeoutMs,
+		void (*onDone)(int,int,int,Qntan_Cls), Qntan_Cls );
 };
 
 
@@ -517,13 +534,13 @@ struct Qntan_Socket {
 struct Qntan_TarEnc_Hdr {
 	char const*path;  int path_len;
 	unsigned mode;
-	uint_least32_t uid, gid;
+	uint32_t uid, gid;
 	char const usrNm[32], grpNm[32];
-	uint_least64_t mTimeEpchSec;
-	uint_least64_t nBodyOctets;
+	uint64_t mTimeEpchSec;
+	uint64_t nBodyOctets;
 	/**
 	 * 0x30=file, 0x31=hardlink, 0x32=symlink. */
-	uint_least8_t linkType;
+	uint8_t linkType;
 	char const*link;  int link_len;
 };
 
@@ -546,7 +563,8 @@ struct Qntan_TarEnc {
 	 * @param buf_len
 	 *      How many octets to write from 'buf'.
 	 * @param flgs
-	 *      0x4 set means this is last chunk.
+	 *      0x4 set means this is last chunk of this entry.
+	 *      0x8 set means, that the whole archive has completed.
 	 *      Any other bit set is UNDEFINED BEHAVIOR!
 	 * @param ret
 	 *      Negative on errors.
@@ -578,17 +596,18 @@ struct Qntan_TarEnc {
 struct Qntan_TarDec_Hdr {
 	char const*path;  int path_len;
 	unsigned mode;
-	uint_least32_t uid, gid;
+	uint32_t uid, gid;
 	char const *usrNm;  int usrNm_len;
 	char const *grpNm;  int grpNm_len;
-	uint_least64_t mTimeEpchSec;
-	uint_least64_t nBodyOctets;
+	uint64_t mTimeEpchSec;
+	uint64_t nBodyOctets;
 	/**
 	 * 0x30=file, 0x31=hardlink, 0x32=symlink. */
-	uint_least8_t linkType;
+	uint8_t linkType;
 	char const*link;  int link_len;
+	uint32_t checksum;
 	/* TODO doc */
-	uint_least8_t filetype;
+	uint8_t filetype;
 };
 
 struct Qntan_TarDec {
@@ -960,7 +979,7 @@ struct Qntan_JavaBytecodeParser {
  */
 struct Qntan_JavaBytecodeParser_Mentor {
 	/**/
-	void (*onMagic)( uint_least32_t magic, struct Qntan_JavaBytecodeParser_Mentor** );
+	void (*onMagic)( uint32_t magic, struct Qntan_JavaBytecodeParser_Mentor** );
 	/**/
 	void (*onClassfileVersion)(
 		int major, int minor, struct Qntan_JavaBytecodeParser_Mentor**cls );
@@ -970,13 +989,13 @@ struct Qntan_JavaBytecodeParser_Mentor {
 	void (*onConstPoolUtf8)( int poolNr, char const*buf, int buf_len,
 		struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
-	void (*onConstPoolInteger)( int poolNr, int_least32_t intValue,
+	void (*onConstPoolInteger)( int poolNr, int32_t intValue,
 		struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
 	void (*onConstPoolFloat)( int poolNr, float value,
 		struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
-	void (*onConstPoolLong)( int poolNr, int_least64_t value,
+	void (*onConstPoolLong)( int poolNr, int64_t value,
 		struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
 	void (*onConstPoolDouble)( int poolNr, double value,
@@ -1009,10 +1028,10 @@ struct Qntan_JavaBytecodeParser_Mentor {
 	void (*onConstPoolInvokeDynamic)( int poolNr, int bootstrapMethodAttrIdx, int nameAndTypeIdx,
 		struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
-	void (*onConstPoolModule)( int poolNr, uint_least16_t nameIdx,
+	void (*onConstPoolModule)( int poolNr, uint16_t nameIdx,
 		struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
-	void (*onConstPoolPackage)( int poolNr, uint_least16_t nameIdx,
+	void (*onConstPoolPackage)( int poolNr, uint16_t nameIdx,
 		struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
 	void (*onConstPoolEnd)( struct Qntan_JavaBytecodeParser_Mentor**cls );
@@ -1030,11 +1049,11 @@ struct Qntan_JavaBytecodeParser_Mentor {
 	 * TODO is this cback really needed?*/
 	void (*onIfacesEnd)( struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
-	void (*onFieldsBegin)( uint_least16_t numFields,
+	void (*onFieldsBegin)( uint16_t numFields,
 		struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
-	void (*onField)( uint_least16_t poolIdx, uint_least16_t accessFlags, uint_least16_t nameIdx,
-		uint_least16_t descrIdx, uint_least16_t numAttrs,
+	void (*onField)( uint16_t poolIdx, uint16_t accessFlags, uint16_t nameIdx,
+		uint16_t descrIdx, uint16_t numAttrs,
 		struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
 	void (*onMethodsBegin)( int numMethods, struct Qntan_JavaBytecodeParser_Mentor**cls );
@@ -1044,19 +1063,19 @@ struct Qntan_JavaBytecodeParser_Mentor {
 	/**/
 	void (*onClassAttrsBegin)( int numAttrs, struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
-	void (*onAnnotRtVisible)( uint_least16_t typeIdx, uint_least16_t numKeyValPairs,
+	void (*onAnnotRtVisible)( uint16_t typeIdx, uint16_t numKeyValPairs,
 		struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
-	void (*onAnnotRtInVisible)( uint_least16_t typeIdx, uint_least16_t numKeyValPairs,
+	void (*onAnnotRtInVisible)( uint16_t typeIdx, uint16_t numKeyValPairs,
 		struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
-	void (*onAnnotKeyValPair)( uint_least8_t type, uint_least16_t typeNameIdx,
-		uint_least16_t constNameIdx, struct Qntan_JavaBytecodeParser_Mentor**cls );
+	void (*onAnnotKeyValPair)( uint8_t type, uint16_t typeNameIdx,
+		uint16_t constNameIdx, struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
-	void (*onAnnotKey)( uint_least8_t type, uint_least16_t typeNameIdx,
+	void (*onAnnotKey)( uint8_t type, uint16_t typeNameIdx,
 		struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
-	void (*onGenericAttribute)( int nameIdx, uint_least32_t bodyLength,
+	void (*onGenericAttribute)( int nameIdx, uint32_t bodyLength,
 		struct Qntan_JavaBytecodeParser_Mentor**cls );
 	/**/
 	void (*onGenericAttributeContent)( uint8_t const*buf, int buf_len,
