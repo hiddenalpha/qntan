@@ -100,13 +100,6 @@ struct Qntan_EvLoop {
 	/*
 	 * Process reactor tasks until event loop is signalized to end. */
 	void (*runUntilDone)( struct Qntan_EvLoop** );
-#if 0
-TODO  /*
-TODO   * TODO that should be something like a 'Scheduler' or similar. */
-TODO  void (*setTimeoutMs)(
-TODO      struct Qntan_EvLoop**, struct Garbage_ThreadPool**, int delayMs,
-TODO      void(*fn)(int eno, Qntan_Cls), Qntan_Cls );
-#endif
 	/*
 	 * returns NON-zero, if called from the EvLoopThread. This is intended for
 	 * assertions, to check that one is running on the expected thread. */
@@ -186,10 +179,31 @@ struct Qntan_MemArena {
 
 
 struct Qntan_Executor {
-	/*
-	 * enque a task to this executor. */
-	void (*enque)(
-		struct Qntan_Executor**, void(*fn)(Qntan_Cls), Qntan_Cls );
+	void (*enque)( struct Qntan_Executor**, void(*fn)(Qntan_Cls), Qntan_Cls );
+	/* enque a task to this executor. How the task gets executed depends on what
+	 * executor instance got chosen. This also includes stuff like ThreadPools
+	 * which may execute stuff out of order.
+	 */
+};
+
+
+
+
+
+
+
+
+
+
+struct Qntan_Scheduler {
+	/**/
+	void (*onceAfterMs)(
+		struct Qntan_Scheduler**, int delayMs, void(*fn)(Qntan_Cls), Qntan_Cls );
+	/* Schedule 'fn' to be called after 'delayMs' milliseconds.
+	 * TODO: Specify if time refers to wall-clock, monotonic, etc. For now this
+	 * behavior is implementation-defined, BUT MAY IT WILL BE SPECIFIED HERE IN
+	 * FUTURE!
+	 */
 };
 
 
